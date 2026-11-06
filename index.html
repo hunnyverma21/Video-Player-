@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nova Video Player</title>
+<style>
+:root{color-scheme:dark;--bg:#090d18;--panel:#111827;--muted:#9aa7bd;--accent:#7c5cff;--line:#273247}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 20% 0%,#1b2450 0,#090d18 42%);font-family:Inter,Segoe UI,Arial,sans-serif;color:#f5f7ff;display:grid;place-items:center;padding:24px}
+.app{width:min(100%,1000px)}header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px}.brand{display:flex;align-items:center;gap:12px}.logo{width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,#8b5cf6,#4f46e5);display:grid;place-items:center;font-size:20px;box-shadow:0 8px 24px #6d5df455}h1{font-size:20px;margin:0}header p{margin:4px 0 0;color:var(--muted);font-size:12px}.pill{border:1px solid var(--line);border-radius:999px;padding:8px 12px;color:#c8d2e5;font-size:12px}
+.player{background:#080b12;border:1px solid #28334a;border-radius:20px;overflow:hidden;box-shadow:0 24px 80px #0008}.screen{position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,#111a32,#080b12);display:grid;place-items:center}.screen video{width:100%;height:100%;object-fit:contain;display:none;background:#000}.empty{text-align:center;padding:25px}.playmark{width:74px;height:74px;border-radius:50%;display:grid;place-items:center;margin:0 auto 16px;background:#ffffff12;border:1px solid #ffffff26;font-size:28px}.empty h2{font-size:19px;margin:0 0 8px}.empty p{font-size:13px;color:var(--muted);margin:0 0 18px}.primary,.filebtn{border:0;border-radius:10px;background:var(--accent);color:white;padding:11px 16px;font-weight:650;cursor:pointer}.primary:hover,.filebtn:hover{filter:brightness(1.12)}.controls{padding:14px 18px 16px;background:linear-gradient(#111827,#0e1523)}.timeline{width:100%;accent-color:var(--accent);cursor:pointer;margin:0 0 12px}.controlrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.ctrl{background:transparent;border:0;color:#e7ebf5;font-size:17px;cursor:pointer;padding:5px}.ctrl:hover{color:#a99aff}.time{font-size:12px;color:#c2cadd;font-variant-numeric:tabular-nums;white-space:nowrap}.spacer{flex:1}.volume{width:90px;accent-color:var(--accent)}select{background:#1b2639;color:#e7ebf5;border:1px solid #34425b;border-radius:8px;padding:7px;font-size:12px}.bottom{display:flex;justify-content:space-between;align-items:center;padding:15px 2px;color:var(--muted);font-size:12px;gap:12px}.bottom strong{color:#e8ebf5;font-weight:600}.hint{border:1px solid var(--line);border-radius:12px;padding:10px 12px}.hidden{display:none!important}input[type=file]{display:none}@media(max-width:600px){body{padding:12px}.pill{display:none}.controls{padding:12px}.volume{width:65px}.time{font-size:11px}.ctrl{font-size:16px}.bottom{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<main class="app">
+<header><div class="brand"><div class="logo">▶</div><div><h1>Nova Video Player</h1><p>Your videos, your way.</p></div></div><span class="pill">LOCAL MEDIA PLAYER</span></header>
+<section class="player">
+<div class="screen" id="screen">
+<video id="video" playsinline preload="metadata"></video>
+<div class="empty" id="empty"><div class="playmark">▶</div><h2>Ready when you are</h2><p>Choose a video file from your device to start watching.</p><label class="filebtn" for="file">＋ Open video</label></div>
+</div>
+<div class="controls">
+<input class="timeline" id="seek" type="range" min="0" max="1000" value="0" aria-label="Seek video">
+<div class="controlrow">
+<button class="ctrl" id="play" title="Play / Pause">▶</button>
+<button class="ctrl" id="back" title="Back 10 seconds">↶</button>
+<button class="ctrl" id="forward" title="Forward 10 seconds">↷</button>
+<span class="time" id="clock">00:00 / 00:00</span>
+<span class="spacer"></span>
+<span style="font-size:12px;color:#aeb9cd">VOL</span><input class="volume" id="volume" type="range" min="0" max="1" step=".01" value=".85" aria-label="Volume">
+<select id="speed" aria-label="Playback speed"><option value=".5">0.5×</option><option value=".75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select>
+<button class="ctrl" id="pip" title="Picture in Picture">▣</button>
+<button class="ctrl" id="fullscreen" title="Fullscreen">⛶</button>
+</div>
+</div>
+</section>
+<div class="bottom"><span id="filename"><strong>No video selected</strong></span><span class="hint">Tip: Press <strong>Space</strong> to play/pause · <strong>← / →</strong> to seek</span></div>
+<input type="file" id="file" accept="video/*">
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const video=$('video'), file=$('file'), empty=$('empty'), play=$('play'), seek=$('seek'), clock=$('clock');
+let objectUrl=null, dragging=false;
+const fmt=s=>{if(!Number.isFinite(s))return '00:00';s=Math.max(0,Math.floor(s));let h=Math.floor(s/3600),m=Math.floor(s%3600/60),sec=s%60;return h?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`};
+function update(){if(!dragging&&Number.isFinite(video.duration)&&video.duration){seek.value=video.currentTime/video.duration*1000}clock.textContent=`${fmt(video.currentTime)} / ${fmt(video.duration)}`;play.textContent=video.paused?'▶':'Ⅱ'}
+file.addEventListener('change',()=>{const f=file.files[0];if(!f)return;if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=URL.createObjectURL(f);video.src=objectUrl;video.style.display='block';empty.classList.add('hidden');$('filename').innerHTML=`<strong>${f.name.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</strong>`;video.play().catch(()=>{});});
+play.onclick=()=>video.paused?video.play():video.pause();
+video.addEventListener('play',update);video.addEventListener('pause',update);video.addEventListener('timeupdate',update);video.addEventListener('loadedmetadata',update);
+$('back').onclick=()=>video.currentTime=Math.max(0,video.currentTime-10);
+$('forward').onclick=()=>video.currentTime=Math.min(video.duration||Infinity,video.currentTime+10);
+seek.addEventListener('input',()=>{dragging=true;if(video.duration)clock.textContent=`${fmt(seek.value/1000*video.duration)} / ${fmt(video.duration)}`});
+seek.addEventListener('change',()=>{if(video.duration)video.currentTime=seek.value/1000*video.duration;dragging=false;update()});
+$('volume').oninput=e=>video.volume=Number(e.target.value);
+$('speed').onchange=e=>video.playbackRate=Number(e.target.value);
+$('fullscreen').onclick=()=>{const target=$('screen');if(!document.fullscreenElement)target.requestFullscreen?.();else document.exitFullscreen?.()};
+$('pip').onclick=async()=>{try{if(document.pictureInPictureElement)await document.exitPictureInPicture();else if(document.pictureInPictureEnabled&&video.readyState>=1)await video.requestPictureInPicture()}catch(e){alert('Picture in Picture is not available for this video or browser.') }};
+$('screen').ondblclick=()=>{if(video.style.display!=='none')$('fullscreen').click()};
+document.addEventListener('keydown',e=>{if(['INPUT','SELECT','BUTTON'].includes(document.activeElement.tagName))return;if(e.code==='Space'){e.preventDefault();play.click()}if(e.key==='ArrowLeft')$('back').click();if(e.key==='ArrowRight')$('forward').click();if(e.key==='f')$('fullscreen').click();if(e.key==='m')video.muted=!video.muted});
+video.volume=.85;
+</script>
+</body>
+</html>
